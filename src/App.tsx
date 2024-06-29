@@ -91,16 +91,20 @@ function App() {
           onDrop={handleDrop}
         >
           <canvas ref={imgRef} id="image"></canvas>
+          {!imgData && <div>Drop an image here</div>}
         </div>
-        <button onClick={handleGlitch}>Glitch me</button>
+        <button className="glitch-button" onClick={handleGlitch}>Glitch me</button>
         <div>
-          <label>Low threshold</label>
-          <input type="range" min="0" max="1" step="0.01" value={lowThreshold} onChange={handleLowThresholdChange} id="contrast-low" />
-          {lowThreshold.toFixed(2)}
-          <br />
-          <label>High threshold</label>
-          <input type="range" min="0" max="1" step="0.01" value={highThreshold} onChange={handleHighThresholdChange} id="contrast-high" />
-          {highThreshold.toFixed(2)}
+          <div>
+            <label>Low threshold</label>
+            <input title="Low threshold" type="range" min="0" max="1" step="0.01" placeholder='0.4' value={lowThreshold} onChange={handleLowThresholdChange} id="contrast-low" />
+            {lowThreshold.toFixed(2)}
+          </div>
+          <div>
+            <label>High threshold</label>
+            <input title="High threshold" type="range" min="0" max="1" step="0.01" placeholder='0.8' value={highThreshold} onChange={handleHighThresholdChange} id="contrast-high" />
+            {highThreshold.toFixed(2)}
+          </div>
         </div>
       </div>
     </>

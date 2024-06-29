@@ -26,16 +26,24 @@
   max-width: 60vw;
   max-height: 80vh;
   position: relative;
-  background-color: red;
+  background-color: #333;
+  border-radius: 4px;
+  box-shadow: 1px 1px 0px black;
+  margin-bottom: 0.5em;
+}
+
+.glitch-button {
+  margin: 0.5em;
 }
 
 .image-container canvas {
   max-width: 60vw;
   max-height: 80vh;
+  border-radius: 4px;
 }
 
 .highlight {
-  background-color: yellow;
+  background-color: #666;
 }
 
 @keyframes logo-spin {

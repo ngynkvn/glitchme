@@ -100,7 +100,7 @@ export function getSpans(imgData: ImageData): number[][][] {
 }
 
 export function sortSpansInImage(srcImg: ImageData, spans: number[][][]) {
-    const imgData = new ImageData(srcImg.data, srcImg.width, srcImg.height, { colorSpace: srcImg.colorSpace })
+    const imgData = new ImageData(Uint8ClampedArray.from(srcImg.data), srcImg.width, srcImg.height, { colorSpace: srcImg.colorSpace })
     imgData.data.set([...srcImg.data])
 
     const index = posToIndex(imgData.width)
