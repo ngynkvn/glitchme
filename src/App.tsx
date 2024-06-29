@@ -9,7 +9,7 @@ function App() {
   const [fileDragged, setFileDragged] = useState(false)
   const [imgData, setImgData] = useState<ImageData | null>(null)
   const imgRef = useRef<HTMLCanvasElement | null>(null)
-  const ctx = useMemo(() => imgRef.current?.getContext('2d', { willReadFrequently: true }), [imgRef])
+  const ctx = useMemo(() => imgRef.current?.getContext('2d', { willReadFrequently: true }), [imgRef.current])
 
   const showContrast = () => {
     if (!ctx || !imgData) { return }
