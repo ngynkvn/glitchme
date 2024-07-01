@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import './App.css'
 import { getContrastMap, getSpans, sortSpansInImage } from './util'
@@ -11,6 +11,15 @@ function App() {
   const imgRef = useRef<HTMLCanvasElement | null>(null)
   const ctx = useMemo(() => imgRef.current?.getContext('2d', { willReadFrequently: true }), [imgRef.current])
 
+  const handleChange = (setValue: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(Number(e.target.value))
+    showContrast()
+  }
+  const handleScroll = (setValue: React.Dispatch<React.SetStateAction<number>>) => (e: WheelEvent) => {
+    setValue((prev) => prev + (e.deltaY > 0 ? 0.01 : -0.01))
+    showContrast()
+  }
+
   const showContrast = () => {
     if (!ctx || !imgData) { return }
 
@@ -18,16 +27,6 @@ function App() {
     ctx?.putImageData(contrastMap, 0, 0)
   }
 
-  const handleLowThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLowThreshold(Number(e.target.value))
-    showContrast()
-  }
-
-
-  const handleHighThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setHighThreshold(Number(e.target.value))
-    showContrast()
-  }
 
   const handleGlitch = () => {
     if (!ctx || !imgData) { return }
@@ -97,18 +96,40 @@ function App() {
         <div>
           <div>
             <label>Low threshold</label>
-            <input title="Low threshold" type="range" min="0" max="1" step="0.01" placeholder='0.4' value={lowThreshold} onChange={handleLowThresholdChange} id="contrast-low" />
+            <ScrollableInput title="Low threshold" type="range" min="0" max="1" step="0.01" placeholder='0.4' value={lowThreshold} onWheel={handleScroll(setLowThreshold)} onChange={handleChange(setLowThreshold)} id="contrast-low" />
             {lowThreshold.toFixed(2)}
           </div>
           <div>
             <label>High threshold</label>
-            <input title="High threshold" type="range" min="0" max="1" step="0.01" placeholder='0.8' value={highThreshold} onChange={handleHighThresholdChange} id="contrast-high" />
+            <ScrollableInput title="High threshold" type="range" min="0" max="1" step="0.01" placeholder='0.8' value={highThreshold} onWheel={handleScroll(setHighThreshold)} onChange={handleChange(setHighThreshold)} id="contrast-high" />
             {highThreshold.toFixed(2)}
           </div>
         </div>
       </div>
     </>
   )
+}
+
+
+type ScrollableInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onWheel'> & {
+  onWheel: (_: WheelEvent) => void
+}
+function ScrollableInput({ onWheel, ...props }: ScrollableInputProps) {
+  const ref = useRef<HTMLInputElement>(null)
+  const handleScroll = (e: WheelEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onWheel(e)
+  }
+  useEffect(() => {
+    if (!ref.current) { return }
+    const listener = handleScroll;
+    ref.current.addEventListener('wheel', listener)
+    return () => {
+      ref.current?.removeEventListener('wheel', listener)
+    }
+  }, [ref.current, onWheel])
+  return <input {...props} ref={ref} />
 }
 
 export default App
