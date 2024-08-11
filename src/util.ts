@@ -16,7 +16,7 @@ export function getContrastMap(imgData: ImageData, upperThresh: number, lowerThr
         const r = imgData.data[i];
         const g = imgData.data[i + 1];
         const b = imgData.data[i + 2];
-        const rawBrightness = r * 0.299 + g * 0.587 + b * 0.114
+        const rawBrightness = getBrightness([r, g, b, 0])
         // normalized
         const brightness = rawBrightness / 255
         if (brightness > upperThresh || brightness < lowerThresh) {
@@ -67,6 +67,7 @@ export function getHue(rgba: RGBA) {
 }
 
 
+// get brightness of a pixel, ignoring alpha
 export function getBrightness(rgba: RGBA) {
     return rgba[0] * 0.299 + rgba[1] * 0.587 + rgba[2] * 0.114
 }

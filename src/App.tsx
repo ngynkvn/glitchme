@@ -2,14 +2,33 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import './App.css'
 import { getContrastMap, getSpans, sortSpansInImage } from './util'
+import { kuwahara } from './filter/kuwahara'
 
 function App() {
   const [lowThreshold, setLowThreshold] = useState(0.4)
   const [highThreshold, setHighThreshold] = useState(0.8)
   const [fileDragged, setFileDragged] = useState(false)
-  const [imgData, setImgData] = useState<ImageData | null>(null)
+  const [loadedImage, setImgData] = useState<ImageData | null>(null)
+  const [kuwaharaEnabled, setKuwaharaEnabled] = useState(false)
   const imgRef = useRef<HTMLCanvasElement | null>(null)
   const ctx = useMemo(() => imgRef.current?.getContext('2d', { willReadFrequently: true }), [imgRef.current])
+
+  let imgData = useMemo(() => {
+    if (kuwaharaEnabled && loadedImage) {
+      return kuwahara(loadedImage)
+    }
+    return loadedImage
+  }, [loadedImage, kuwaharaEnabled])
+
+
+  const handleKuwaharaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setKuwaharaEnabled(e.target.checked)
+    if (!e.target.checked || !loadedImage) {
+      return
+    }
+    const imgData = kuwahara(loadedImage)
+    ctx?.putImageData(imgData, 0, 0)
+  }
 
   const handleChange = (setValue: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(Number(e.target.value))
@@ -90,7 +109,7 @@ function App() {
           onDrop={handleDrop}
         >
           <canvas ref={imgRef} id="image"></canvas>
-          {!imgData && <div>Drop an image here</div>}
+          {!loadedImage && <div>Drop an image here</div>}
         </div>
         <button className="glitch-button" onClick={handleGlitch}>Glitch me</button>
         <div>
@@ -103,6 +122,10 @@ function App() {
             <label>High threshold</label>
             <ScrollableInput title="High threshold" type="range" min="0" max="1" step="0.01" placeholder='0.8' value={highThreshold} onWheel={handleScroll(setHighThreshold)} onChange={handleChange(setHighThreshold)} id="contrast-high" />
             {highThreshold.toFixed(2)}
+          </div>
+          <div>
+            <label>Kuwahara</label>
+            <input type="checkbox" checked={kuwaharaEnabled} onChange={handleKuwaharaChange} />
           </div>
         </div>
       </div>
