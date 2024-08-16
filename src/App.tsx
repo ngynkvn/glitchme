@@ -1,5 +1,6 @@
 import React, {
   SyntheticEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -12,68 +13,116 @@ import { kuwahara } from "./filter/kuwahara";
 import { create } from "zustand";
 
 interface AppState {
-  lastEvent: SyntheticEvent | null;
+  lastEvent: SyntheticEvent | Event | null;
+  show: string;
+  setLastEvent: (e: SyntheticEvent | Event | null) => void;
+  setShow: (_: string) => void;
 }
 const useAppStore = create<AppState>((set) => ({
   lastEvent: null,
-  setLastEvent: (e: SyntheticEvent | null) => set(() => ({ lastEvent: e })),
+  show: "",
+  setShow: (show: string) => set((s): AppState => ({ ...s, show })),
+  setLastEvent: (lastEvent: SyntheticEvent | Event | null) =>
+    set((s): AppState => ({ ...s, lastEvent })),
 }));
 
 function App() {
+  // TODO: Zustand all this?
   const [lowThreshold, setLowThreshold] = useState(0.4);
   const [highThreshold, setHighThreshold] = useState(0.8);
   const [fileDragged, setFileDragged] = useState(false);
   const [loadedImage, setImgData] = useState<ImageData | null>(null);
-  const [kuwaharaEnabled, setKuwaharaEnabled] = useState(false);
-  const [lastUserAction, setLastUserAction] = useState(null);
-  const imgRef = useRef<HTMLCanvasElement | null>(null);
-  const ctx = useMemo(
-    () => imgRef.current?.getContext("2d", { willReadFrequently: true }),
-    [imgRef.current],
-  );
+  const [kuwaharaChecked, setKuwaharaChecked] = useState(false);
+  const appState = useAppStore();
+  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const imgRef = useCallback((node: HTMLCanvasElement) => {
+    if (!node) {
+      return;
+    }
+    setCanvas(node);
+    setCtx(node.getContext("2d", { willReadFrequently: true }));
+  }, []);
+
+  console.log("Last event", appState.lastEvent);
+  console.log("Last show", appState.show);
+
+  const loadImage = (file: File | Blob) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const image = new Image();
+      image.src = e.target?.result as string;
+      image.onload = function () {
+        if (!canvas || !ctx) {
+          return;
+        }
+        canvas.width = image.width;
+        canvas.height = image.height;
+        ctx.drawImage(image, 0, 0);
+        setImgData(ctx.getImageData(0, 0, canvas.width, canvas.height) ?? null);
+        setFileDragged(false);
+      };
+    };
+    reader.readAsDataURL(file);
+  };
 
   let imgData = useMemo(() => {
-    if (kuwaharaEnabled && loadedImage) {
+    if (!loadedImage) {
+      return loadedImage;
+    }
+    if (appState.show === "kuwahara" && kuwaharaChecked) {
       return kuwahara(loadedImage);
+    } else if (appState.show === "contrast") {
+      return getContrastMap(loadedImage, highThreshold, lowThreshold);
+    } else if (appState.show === "glitched" && loadedImage) {
+      const contrastMap = getContrastMap(
+        loadedImage,
+        highThreshold,
+        lowThreshold,
+      );
+      const spans = getSpans(contrastMap);
+      const glitched = sortSpansInImage(loadedImage, spans);
+      return glitched;
     }
     return loadedImage;
-  }, [loadedImage, kuwaharaEnabled]);
+  }, [loadedImage, appState.show, appState.lastEvent]);
+
+  useEffect(() => {
+    if (!ctx) {
+      return;
+    }
+    fetch("/glitchme/small.jpg").then(async (r) => {
+      console.log("fetched");
+      loadImage(await r.blob());
+    });
+  }, [ctx]);
 
   const handleKuwaharaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setKuwaharaEnabled(e.target.checked);
+    appState.setLastEvent(e);
+    appState.setShow("kuwahara");
+    setKuwaharaChecked(e.target.checked);
   };
 
   const handleChange =
     (setValue: (value: number) => void) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      appState.setLastEvent(e);
+      appState.setShow("contrast");
       setValue(Number(e.target.value));
-      showContrast();
     };
   const handleScroll =
     (setValue: React.Dispatch<React.SetStateAction<number>>) =>
     (e: WheelEvent) => {
+      appState.setLastEvent(e);
+      appState.setShow("contrast");
       setValue((prev) => prev + (e.deltaY > 0 ? 0.01 : -0.01));
-      showContrast();
     };
-
-  const showContrast = () => {
-    if (!ctx || !imgData) {
-      return;
-    }
-
-    const contrastMap = getContrastMap(imgData, highThreshold, lowThreshold);
-    ctx?.putImageData(contrastMap, 0, 0);
-  };
 
   const handleGlitch = () => {
     if (!ctx || !imgData) {
       return;
     }
-
-    const contrastMap = getContrastMap(imgData, highThreshold, lowThreshold);
-    const spans = getSpans(contrastMap);
-    const glitched = sortSpansInImage(imgData, spans);
-    ctx?.putImageData(glitched, 0, 0);
+    appState.setShow("glitched");
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -86,7 +135,7 @@ function App() {
     setFileDragged(false);
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = e.dataTransfer?.files;
 
@@ -95,28 +144,7 @@ function App() {
     }
 
     const file = files[0];
-
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const image = new Image();
-        image.src = e.target?.result as string;
-        image.onload = function () {
-          const canvas = imgRef.current;
-          if (!canvas) {
-            return;
-          }
-          canvas.width = image.width;
-          canvas.height = image.height;
-          ctx?.drawImage(image, 0, 0);
-          setImgData(
-            ctx?.getImageData(0, 0, canvas.width, canvas.height) ?? null,
-          );
-        };
-      };
-      reader.readAsDataURL(file);
-    }
-    setFileDragged(false);
+    loadImage(file);
   };
 
   if (imgData) {
@@ -175,7 +203,7 @@ function App() {
             <label>Kuwahara</label>
             <input
               type="checkbox"
-              checked={kuwaharaEnabled}
+              checked={kuwaharaChecked}
               onChange={handleKuwaharaChange}
             />
           </div>
