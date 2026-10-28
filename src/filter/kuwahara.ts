@@ -1,55 +1,48 @@
-import { RGBA, getBrightness, getRGBA } from "../util";
+import { cloneImage, getBrightness, getRGBA, type PixelImage } from '../util'
 
-// Applies the Kuwahara filter to the image.
-export function kuwahara(img: ImageData) {
-    const w = img.width;
-    const h = img.height;
-
-    const output = new ImageData(w, h);
-
-    const getValues = (quadrant: number[][]) => {
-        const [tl, br] = quadrant;
-        const rgbs: RGBA[] = [];
-        for (let y = tl[1]; y < br[1]; y++) {
-            for (let x = tl[0]; x < br[0]; x++) {
-                rgbs.push(getRGBA(img, x, y));
-            }
-        }
-        return rgbs;
+// Clamp sampling at edges and weight color by alpha to avoid dark halos.
+function sampleQuadrant(image: PixelImage, x: number, y: number, dx: number, dy: number) {
+  const sums = [0, 0, 0]
+  let weight = 0
+  let brightness = 0
+  let squared = 0
+  for (let oy = 0; oy <= 2; oy++) {
+    for (let ox = 0; ox <= 2; ox++) {
+      const px = Math.max(0, Math.min(image.width - 1, x + ox * dx))
+      const py = Math.max(0, Math.min(image.height - 1, y + oy * dy))
+      const rgba = getRGBA(image, px, py)
+      const alpha = rgba[3] / 255
+      const value = getBrightness(rgba)
+      weight += alpha
+      brightness += value * alpha
+      squared += value * value * alpha
+      for (let channel = 0; channel < 3; channel++) sums[channel] += rgba[channel] * alpha
     }
-
-    for (let y = 2; y < h - 2; y++) {
-        for (let x = 2; x < w - 2; x++) {
-            const i = (y * w + x) * 4;
-            const quadrant_a = [[x - 2, y - 2], [x, y]];
-            const quadrant_b = [[x, y - 2], [x + 2, y]];
-            const quadrant_c = [[x - 2, y], [x, y + 2]];
-            const quadrant_d = [[x, y], [x + 2, y + 2]];
-            const quadrants = [quadrant_a, quadrant_b, quadrant_c, quadrant_d];
-
-            const stds = [quadrant_a, quadrant_b, quadrant_c, quadrant_d]
-                .map(getValues)
-                .map(x => x.map(getBrightness))
-                .map(calcStd)
-            const argmin = stds.indexOf(Math.min(...stds));
-            const quadrant = quadrants[argmin];
-            const [r, g, b, a] = rgbAverage(getValues(quadrant))
-            output.data[i] = r;
-            output.data[i + 1] = g;
-            output.data[i + 2] = b;
-            output.data[i + 3] = a;
-        }
-    }
-    return output
+  }
+  if (weight === 0) return { variance: Infinity, color: sums }
+  return {
+    variance: Math.max(0, squared / weight - (brightness / weight) ** 2),
+    color: sums.map((value) => value / weight),
+  }
 }
 
-function rgbAverage(quadrant: RGBA[]): RGBA {
-    const [r, g, b, a] = quadrant.reduce(([r, g, b, a], [r2, g2, b2, a2]) => [r + r2, g + g2, b + b2, a + a2], [0, 0, 0, 0]);
-    return [r / quadrant.length, g / quadrant.length, b / quadrant.length, a / quadrant.length];
-}
-
-function calcStd(values: number[]) {
-    const avg = values.reduce((a, b) => a + b) / values.length;
-    const std = values.map(v => Math.pow(v - avg, 2)).reduce((a, b) => a + b) / values.length;
-    return Math.sqrt(std);
+export function kuwahara(image: PixelImage): PixelImage {
+  const output = cloneImage(image)
+  const quadrants = [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]
+  for (let y = 0; y < image.height; y++) {
+    for (let x = 0; x < image.width; x++) {
+      const samples = quadrants.map(([dx, dy]) => sampleQuadrant(image, x, y, dx, dy))
+      const best = samples.reduce((a, b) => (a.variance <= b.variance ? a : b))
+      const index = (y * image.width + x) * 4
+      if (!Number.isFinite(best.variance)) continue
+      output.data.set(best.color, index)
+      // Keep the original alpha, including the outermost rows and columns.
+    }
+  }
+  return output
 }

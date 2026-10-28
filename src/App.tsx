@@ -1,158 +1,142 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import clsx from 'clsx'
+import { useRef, useState } from 'react'
 import './App.css'
-import { getContrastMap, getSpans, sortSpansInImage } from './util'
-import { kuwahara } from './filter/kuwahara'
+import { Header, Intro } from './components/Brand'
+import { Controls } from './components/Controls'
+import { Icon } from './components/Icon'
+import { ImageToolbar } from './components/ImageToolbar'
+import { useFileDrop } from './hooks/useFileDrop'
+import { Preview } from './components/Preview'
+import { useImage } from './hooks/useImage'
+import { useProcessor } from './hooks/useProcessor'
+import { downloadImage } from './image'
+import { DEFAULT_SETTINGS, remixSettings } from './settings'
 
 function App() {
-  const [lowThreshold, setLowThreshold] = useState(0.4)
-  const [highThreshold, setHighThreshold] = useState(0.8)
-  const [fileDragged, setFileDragged] = useState(false)
-  const [loadedImage, setImgData] = useState<ImageData | null>(null)
-  const [kuwaharaEnabled, setKuwaharaEnabled] = useState(false)
-  const imgRef = useRef<HTMLCanvasElement | null>(null)
-  const ctx = useMemo(() => imgRef.current?.getContext('2d', { willReadFrequently: true }), [imgRef.current])
-
-  let imgData = useMemo(() => {
-    if (kuwaharaEnabled && loadedImage) {
-      return kuwahara(loadedImage)
+  const { image, loading, error: loadError, load } = useImage()
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
+  const input = useRef<HTMLInputElement>(null)
+  const { result, busy, error: processingError } = useProcessor(image?.pixels ?? null, settings)
+  const error = loadError ?? processingError ?? exportError
+  const upload = () => input.current?.click()
+  const openFile = (file: File) => {
+    setNotice('')
+    setExportError(null)
+    void load(file)
+  }
+  const tryDemo = () => {
+    setNotice('')
+    setExportError(null)
+    void load()
+  }
+  const { dragging, dropProps } = useFileDrop(openFile)
+  const exportPng = async () => {
+    if (!result || !image || busy || loading) return
+    setExporting(true)
+    setExportError(null)
+    try {
+      await downloadImage(result.image, image.name)
+      setNotice('PNG exported. Make another happy accident?')
+    } catch (cause) {
+      setExportError(cause instanceof Error ? cause.message : 'Could not export this image.')
+    } finally {
+      setExporting(false)
     }
-    return loadedImage
-  }, [loadedImage, kuwaharaEnabled])
-
-
-  const handleKuwaharaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setKuwaharaEnabled(e.target.checked)
-    if (!e.target.checked || !loadedImage) {
-      return
-    }
-    const imgData = kuwahara(loadedImage)
-    ctx?.putImageData(imgData, 0, 0)
   }
-
-  const handleChange = (setValue: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(Number(e.target.value))
-    showContrast()
-  }
-  const handleScroll = (setValue: React.Dispatch<React.SetStateAction<number>>) => (e: WheelEvent) => {
-    setValue((prev) => prev + (e.deltaY > 0 ? 0.01 : -0.01))
-    showContrast()
-  }
-
-  const showContrast = () => {
-    if (!ctx || !imgData) { return }
-
-    const contrastMap = getContrastMap(imgData, highThreshold, lowThreshold)
-    ctx?.putImageData(contrastMap, 0, 0)
-  }
-
-
-  const handleGlitch = () => {
-    if (!ctx || !imgData) { return }
-
-    const contrastMap = getContrastMap(imgData, highThreshold, lowThreshold)
-    const spans = getSpans(contrastMap)
-    const glitched = sortSpansInImage(imgData, spans)
-    ctx?.putImageData(glitched, 0, 0)
-  }
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setFileDragged(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setFileDragged(false)
-  }
-
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const files = e.dataTransfer?.files
-
-    if (!files || files.length === 0) {
-      return
-    }
-
-    const file = files[0]
-
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onload = function (e) {
-        const image = new Image()
-        image.src = e.target?.result as string
-        image.onload = function () {
-          const canvas = imgRef.current
-          if (!canvas) {
-            return
-          }
-          canvas.width = image.width
-          canvas.height = image.height
-          ctx?.drawImage(image, 0, 0)
-          setImgData(ctx?.getImageData(0, 0, canvas.width, canvas.height) ?? null)
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-    setFileDragged(false)
-  }
-
-
   return (
-    <>
-      <div>
-        <div
-          className={clsx("image-container", fileDragged ? "highlight" : "")}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <canvas ref={imgRef} id="image"></canvas>
-          {!loadedImage && <div>Drop an image here</div>}
+    <div className="app" {...dropProps}>
+      <a className="skip-link" href="#editor">
+        Skip to editor
+      </a>
+      <Header />
+      <main id="editor">
+        <Intro />
+        <ImageToolbar
+          image={image}
+          loading={loading}
+          canExport={Boolean(result && !busy && !loading && !processingError)}
+          exporting={exporting}
+          onUpload={upload}
+          onExport={() => void exportPng()}
+        />
+        <input
+          ref={input}
+          className="visually-hidden"
+          type="file"
+          accept="image/*"
+          aria-label="Choose image"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) openFile(file)
+            event.target.value = ''
+          }}
+        />
+        {error && (
+          <div className="error-message" role="alert">
+            {error} <button onClick={tryDemo}>Try the demo</button>
+          </div>
+        )}
+        <div className="editor-layout">
+          <Controls
+            settings={settings}
+            onChange={setSettings}
+            onReset={() => setSettings(DEFAULT_SETTINGS)}
+            onRemix={() => setSettings(remixSettings())}
+          />
+          <div className="workspace">
+            <Preview
+              original={image?.pixels ?? null}
+              result={result?.image}
+              mask={result?.mask}
+              busy={busy || loading}
+              dragging={dragging}
+              onUpload={upload}
+            />
+            <div className="workspace-bottom">
+              <p>
+                <span className="shortcut">⌘ / Ctrl + V</span> to paste an image
+              </p>
+              <button className="text-button" onClick={tryDemo}>
+                Try the demo <Icon name="arrow" size={14} />
+              </button>
+            </div>
+            <details className="how-it-works">
+              <summary>
+                A little method to the madness <span>+</span>
+              </summary>
+              <p>
+                Pixel sorting rearranges streaks of pixels by brightness or color. Pick a preset,
+                then move the thresholds to choose which pixels get sorted. Use the selection mask
+                to see the affected areas, compare with your original, and export your favorite
+                result. Every edit starts from the original image.
+              </p>
+              <p>
+                Images stay in your browser. Large images are resized to a maximum of 1600 px on the
+                longest edge; PNG exports use the displayed dimensions. Animated images use a single
+                frame.
+              </p>
+            </details>
+          </div>
         </div>
-        <button className="glitch-button" onClick={handleGlitch}>Glitch me</button>
-        <div>
-          <div>
-            <label>Low threshold</label>
-            <ScrollableInput title="Low threshold" type="range" min="0" max="1" step="0.01" placeholder='0.4' value={lowThreshold} onWheel={handleScroll(setLowThreshold)} onChange={handleChange(setLowThreshold)} id="contrast-low" />
-            {lowThreshold.toFixed(2)}
-          </div>
-          <div>
-            <label>High threshold</label>
-            <ScrollableInput title="High threshold" type="range" min="0" max="1" step="0.01" placeholder='0.8' value={highThreshold} onWheel={handleScroll(setHighThreshold)} onChange={handleChange(setHighThreshold)} id="contrast-high" />
-            {highThreshold.toFixed(2)}
-          </div>
-          <div>
-            <label>Kuwahara</label>
-            <input type="checkbox" checked={kuwaharaEnabled} onChange={handleKuwaharaChange} />
-          </div>
+        <div className="sr-status" role="status" aria-live="polite">
+          {busy ? 'Processing image' : notice || (result ? 'Preview ready' : '')}
         </div>
-      </div>
-    </>
+        <footer className="site-footer">
+          <span>
+            <span className="status-dot" /> 100% LOCAL. 100% YOUR PIXELS.
+          </span>
+          <span>
+            {result && !busy
+              ? `${Math.round(result.selected * 100)}% pixels selected`
+              : 'Made for experimentation'}{' '}
+            <span className="footer-cross">✳</span> BREAK THE PATTERN.
+          </span>
+        </footer>
+      </main>
+    </div>
   )
-}
-
-
-type ScrollableInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onWheel'> & {
-  onWheel: (_: WheelEvent) => void
-}
-function ScrollableInput({ onWheel, ...props }: ScrollableInputProps) {
-  const ref = useRef<HTMLInputElement>(null)
-  const handleScroll = (e: WheelEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    onWheel(e)
-  }
-  useEffect(() => {
-    if (!ref.current) { return }
-    const listener = handleScroll;
-    ref.current.addEventListener('wheel', listener)
-    return () => {
-      ref.current?.removeEventListener('wheel', listener)
-    }
-  }, [ref.current, onWheel])
-  return <input {...props} ref={ref} />
 }
 
 export default App
