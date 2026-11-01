@@ -23,9 +23,8 @@ export function Controls({ settings, onChange, onReset, onRemix }: Props) {
       <section className="presets-section">
         <div className="section-heading">
           <h2>
-            <span>01</span> Start somewhere
+            <span>01</span> Presets
           </h2>
-          <span className="tiny-tag">PRESETS</span>
         </div>
         <div className="preset-grid">
           {PRESETS.map((preset) => (
@@ -47,7 +46,7 @@ export function Controls({ settings, onChange, onReset, onRemix }: Props) {
       <section>
         <div className="section-heading">
           <h2>
-            <span>02</span> Make it yours
+            <span>02</span> Adjust
           </h2>
           <button className="text-button" onClick={onReset}>
             <Icon name="reset" size={13} /> Reset
@@ -146,7 +145,7 @@ export function Controls({ settings, onChange, onReset, onRemix }: Props) {
         />
         <label className="check-row smooth-row">
           <span>
-            Kuwahara smoothing<small>A soft, painterly finish</small>
+            Kuwahara smoothing<small>Smooths texture; keeps edges</small>
           </span>
           <input
             type="checkbox"
@@ -157,9 +156,8 @@ export function Controls({ settings, onChange, onReset, onRemix }: Props) {
         </label>
       </section>
       <button className="remix-button" onClick={onRemix}>
-        <Icon name="shuffle" /> Surprise me <span>↗</span>
+        <Icon name="shuffle" /> Randomize <span>↗</span>
       </button>
-      <p className="controls-note">Happy accidents encouraged.</p>
     </aside>
   )
 }

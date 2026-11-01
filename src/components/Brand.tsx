@@ -7,7 +7,6 @@ export function Header() {
         </span>
         glitchme<span className="brand-period">.</span>
       </a>
-      <span className="header-note">A LITTLE DISORDER BY DESIGN</span>
       <a
         className="github-link"
         href="https://github.com/ngynkvn/glitchme"
@@ -25,17 +24,14 @@ export function Intro() {
     <div className="intro">
       <div>
         <p className="eyebrow">
-          <span /> THE PIXEL SORTING PLAYGROUND
+          <span /> IMAGE EDITOR
         </p>
         <h1>
-          Perfectly <em>imperfect.</em>
+          Pixel <em>sorting.</em>
         </h1>
-        <p className="intro-description">Turn ordinary images into extraordinary accidents.</p>
-      </div>
-      <div className="intro-stamp" aria-hidden="true">
-        <span>LESS</span>
-        <strong>CONTROL.</strong>
-        <span>MORE POSSIBILITY. ↗</span>
+        <p className="intro-description">
+          Sort pixels into streaks. Adjust the effect and export a PNG.
+        </p>
       </div>
     </div>
   )

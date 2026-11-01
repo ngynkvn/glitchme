@@ -45,7 +45,7 @@ export const PRESETS: { name: string; description: string; color: string; settin
   },
   {
     name: 'Spectral',
-    description: 'Color out of order',
+    description: 'Hue sorting with RGB split',
     color: 'spectral',
     settings: {
       ...DEFAULT_SETTINGS,
@@ -59,7 +59,7 @@ export const PRESETS: { name: string; description: string; color: string; settin
   },
   {
     name: 'Oil slick',
-    description: 'Painterly pixel smears',
+    description: 'Saturation sorting with smoothing',
     color: 'oil',
     settings: {
       ...DEFAULT_SETTINGS,

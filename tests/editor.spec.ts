@@ -134,7 +134,7 @@ test('paste and drop replace the image, and large images are resized', async ({ 
   })
   await ready(page)
   await expect(page.getByText('pasted.svg', { exact: true })).toBeVisible()
-  await expect(page.getByText('1600 × 800 px · resized for smooth editing')).toBeVisible()
+  await expect(page.getByText('1600 × 800 px · resized to 1600 px max')).toBeVisible()
   await page.evaluate(() => {
     const data = new DataTransfer()
     data.items.add(

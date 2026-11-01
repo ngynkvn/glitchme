@@ -1,20 +1,28 @@
 # Glitchme
 
-A pixel sorting playground. Open an image, bend it out of shape, and export a happy accident.
+A browser-based pixel sorting editor. Sort pixels into streaks, adjust the effect, and export a PNG.
 
 **[Open the app →](https://ngynkvn.github.io/glitchme/)**
 
-## What you can do
+## Use
 
-- Open, drag in, or paste an image. An original Alpine illustration is included to experiment with immediately.
-- Start with Drift, Signal, Spectral, or Oil slick; use **Surprise me** for a fresh combination.
-- Sort horizontal or vertical streaks by brightness, hue, or saturation. Adjust the brightness window, streak length, sort intensity, RGB split, and Kuwahara smoothing.
-- Switch between the result, original, and selection mask, or drag the comparison divider.
-- Export the processed image as a PNG. Edits always start from the original; Reset restores the default effect.
+1. Open, drop, or paste an image, or use the included Alpine demo.
+2. Choose Drift, Signal, Spectral, or Oil slick. **Randomize** generates new settings.
+3. Adjust direction, sort order, brightness window, streak length, intensity, RGB split, and Kuwahara smoothing.
+4. Check the selection mask or use Compare to view the original beside the result.
+5. Export a PNG.
 
-The demo artwork is original. DM Sans and Space Grotesk fonts are bundled locally under their included SIL Open Font Licenses in `public/fonts/`.
+Each edit starts from the original. Reset restores the default effect. Sliders support arrow keys and the mouse wheel when focused.
 
-Images are processed locally in a cancellable Web Worker and never uploaded. Files up to 25 MB are accepted. Images larger than 1600 px on their longest edge are resized to keep editing responsive, and exports use those displayed dimensions. Animated formats use a single frame. Browser-supported image formats, including PNG, JPEG, WebP, AVIF, and SVG, can be opened. A focused slider supports the mouse wheel; arrow keys work on all sliders.
+## Image limits and privacy
+
+- Processing runs locally in a Web Worker. Images are never uploaded.
+- Max file size: 25 MB.
+- Images larger than 1600 px on the longest edge are resized. Exports use the preview dimensions.
+- Animated images use one frame.
+- Supported formats depend on the browser, including PNG, JPEG, WebP, AVIF, and SVG.
+
+The demo illustration is original. Bundled DM Sans and Space Grotesk fonts include SIL Open Font Licenses in `public/fonts/`.
 
 ## Development
 

@@ -74,7 +74,7 @@ export function Preview({ original, result, mask, busy, dragging, onUpload }: Pr
       </div>
       <div className={clsx('stage', { dragging })}>
         <span className="stage-label">
-          THE CANVAS{' '}
+          PREVIEW{' '}
           <span>
             {' '}
             /{' '}
@@ -122,20 +122,19 @@ export function Preview({ original, result, mask, busy, dragging, onUpload }: Pr
         ) : (
           <button className="empty-state" onClick={onUpload}>
             <Icon name="image" size={40} />
-            <strong>Your next happy accident starts here.</strong>
-            <span>Choose an image or drop it onto the canvas.</span>
+            <strong>Open an image</strong>
+            <span>Choose a file or drop it here.</span>
           </button>
         )}
         {busy && (
           <span className="processing">
-            <span className="status-dot" /> Rendering your pixels…
+            <span className="status-dot" /> Processing…
           </span>
         )}
         {dragging && (
           <div className="drop-overlay">
             <Icon name="upload" size={34} />
-            <strong>Drop it like it’s art.</strong>
-            <span>Let’s give those pixels a new direction.</span>
+            <strong>Drop image to open</strong>
           </div>
         )}
         <span className="stage-corner" aria-hidden="true">

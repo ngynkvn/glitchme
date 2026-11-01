@@ -38,7 +38,7 @@ function App() {
     setExportError(null)
     try {
       await downloadImage(result.image, image.name)
-      setNotice('PNG exported. Make another happy accident?')
+      setNotice('PNG exported.')
     } catch (cause) {
       setExportError(cause instanceof Error ? cause.message : 'Could not export this image.')
     } finally {
@@ -104,19 +104,22 @@ function App() {
             </div>
             <details className="how-it-works">
               <summary>
-                A little method to the madness <span>+</span>
+                How it works <span>+</span>
               </summary>
-              <p>
-                Pixel sorting rearranges streaks of pixels by brightness or color. Pick a preset,
-                then move the thresholds to choose which pixels get sorted. Use the selection mask
-                to see the affected areas, compare with your original, and export your favorite
-                result. Every edit starts from the original image.
-              </p>
-              <p>
-                Images stay in your browser. Large images are resized to a maximum of 1600 px on the
-                longest edge; PNG exports use the displayed dimensions. Animated images use a single
-                frame.
-              </p>
+              <p>Pixel sorting rearranges streaks of pixels by brightness, hue, or saturation.</p>
+              <ol>
+                <li>Choose a preset or adjust the controls.</li>
+                <li>
+                  Set the brightness window to select pixels. View the selection mask to check.
+                </li>
+                <li>Use Compare to check the original, then export a PNG.</li>
+              </ol>
+              <ul>
+                <li>Each edit starts from the original image.</li>
+                <li>Images stay in your browser. Nothing is uploaded.</li>
+                <li>Limits: 25 MB per file; 1600 px on the longest edge.</li>
+                <li>PNG exports use the preview dimensions. Animated images use one frame.</li>
+              </ul>
             </details>
           </div>
         </div>
@@ -125,13 +128,12 @@ function App() {
         </div>
         <footer className="site-footer">
           <span>
-            <span className="status-dot" /> 100% LOCAL. 100% YOUR PIXELS.
+            <span className="status-dot" /> PROCESSED IN YOUR BROWSER.
           </span>
           <span>
             {result && !busy
               ? `${Math.round(result.selected * 100)}% pixels selected`
-              : 'Made for experimentation'}{' '}
-            <span className="footer-cross">✳</span> BREAK THE PATTERN.
+              : 'No selection yet'}
           </span>
         </footer>
       </main>

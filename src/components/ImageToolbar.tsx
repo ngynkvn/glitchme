@@ -14,11 +14,7 @@ export function ImageToolbar({ image, loading, canExport, exporting, onUpload, o
   const dimensions = image
     ? `${image.pixels.width} × ${image.pixels.height} px`
     : 'PNG, JPEG, WebP, AVIF · up to 25 MB'
-  const suffix = image
-    ? image.resized
-      ? ' · resized for smooth editing'
-      : ' · ready to experiment'
-    : ''
+  const suffix = image?.resized ? ' · resized to 1600 px max' : ''
   return (
     <div className="editor-bar">
       <div className="file-info">
